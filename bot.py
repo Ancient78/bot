@@ -45,7 +45,10 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
                "/help - Текущее руководство\n" \
                "/link - Получить ссылку на этот бот\n" \
                "/begin_orders - Начать сборку заказа\n" \
-               "/end_orders - Закончить сборку заказа\n"
+               "/end_orders - Закончить сборку заказа\n" \
+               "/my_orders - Просмотреть мой заказ" \
+               "/change_count - изменить количество в заказе" \
+               "/del_row_orders - удалить строку заказа"
     else:
         text="Напоминаю - этот бот создан для личного общения. Если вы попали сюда случайно, то просто удалите этот чат." \
              "/help - Текущее руководство\n" \
@@ -299,6 +302,21 @@ async def end_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(update.effective_chat.id, text="Введите телефон для связи, если хотите, чтобы Вам перезвонили. В ином случае с Вами свяжутся через Телеграмм.")
 
 
+async def my_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if sql.is_user_here(update.effective_chat.id):
+        data = oders.get_orders(user_id=update.effective_chat.id, shipped=False, paid=False)
+        full_text = ""
+        index = 1
+        for _, user_id, storage_id, count, _, _, _ in data:
+            temp_text = Template("$index)$nom - $count\n")
+            full_text += temp_text.substitute(index=index, nom=storage.get_storage_name(storage_id).lstrip(), count=count)
+            index+=1
+        if full_text != "":
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=full_text)
+        else:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="Нет заказанных товаров.")
+
+
 async def get_all_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id in master_user:
         data = oders.get_orders()
@@ -414,6 +432,7 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler("end_orders", end_orders))
     application.add_handler(CommandHandler("set_shiped", set_shiped))
     application.add_handler(CommandHandler("set_paid", set_paid))
+    application.add_handler(CommandHandler("my_orders", my_orders))
     add_text_handler()
     application.add_handler(CallbackQueryHandler(button_5, pattern="Paid \d+"))
     application.add_handler(CallbackQueryHandler(button_4, pattern="Ship \d+"))

@@ -67,7 +67,7 @@ def make_reserve(storage_id, count) -> bool:
         return True
 
 
-def get_storage_name(storage_id):
+def get_storage_name(storage_id)->str:
     _, cur = get_con()
     res = cur.execute("SELECT nom FROM storage WHERE storage_id=?", (storage_id,)).fetchone()
     if res is not None:
