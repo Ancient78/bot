@@ -112,7 +112,7 @@ def set_new_count(temp_storage_index, user_id, count):
             return storage_id, now_count-count
 
 
-def delete_row(temp_storage_index, user_id):
+def delete_row(user_id, temp_storage_index):
     if temp_storage_index>0:
         sql_query = "SELECT storage_id, count FROM orders WHERE user_id=? and shipped=FALSE and paid=FALSE"
         data = (user_id,)
@@ -124,3 +124,4 @@ def delete_row(temp_storage_index, user_id):
             data = (user_id, storage_id)
             cur.execute(sql_query, data)
             con.commit()
+            return storage_id, now_count

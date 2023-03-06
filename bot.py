@@ -192,8 +192,10 @@ async def button_7(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = query.data
     temp_storage_index = int(user_id.replace("DeleteRow ", ""))
-    oders.delete_row(update.effective_chat.id, temp_storage_index)
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Строка заказа удалена:")
+    storage_index = int(temp_storage_index)-1
+    storage_id, count = oders.delete_row(update.effective_chat.id, storage_index)
+    storage.add_storage(storage_id, count)
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Строка заказа удалена.")
 
 
 async def passed_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
