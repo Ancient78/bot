@@ -196,7 +196,7 @@ async def passed_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if op == 'Storage': count = int(update.effective_message.text)
         if op == 'Add': nom = update.effective_message.text
         if op == 'Tel': tel = update.effective_message.text
-        if op == 'Storage': count = int(update.effective_message.text)
+        if op == 'ChangeOrder': count = int(update.effective_message.text)
         if temp_storage_id is not None and op == 'Storage':
             if temp_storage_id > 0 and (type(count) == int or type(count) == float):
                 context.user_data.pop("storage_id")
