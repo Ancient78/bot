@@ -15,11 +15,11 @@ from sql import get_id_list, add_user, get_unpassed
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 my_filters = filters.User()
-master_user = 1553590834
+master_user = [1553590834, 449379851]
 
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.id == master_user:
+    if update.effective_chat.id in master_user:
         text = "/start - Начало работы (ознакомительное)\n" \
                "/help - Текущее руководтсво\n" \
                "/reg - Регистрация\n" \
@@ -56,7 +56,7 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def get_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if sql.is_user_here(update.effective_chat.id):
+    if update.effective_chat.id in master_user:
         table = "User id - Name\n"
         data = sql.get_full_table()
         index = 1
@@ -87,7 +87,11 @@ async def reg(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Это личный бот.\nЕсли вы попали сюда случайно, то просто удалите этот чат.\nДля общения необходимо зарегистрироваться.")
+    if update.effective_chat.id in master_user or sql.is_user_here(update.effective_chat.id):
+        await context.bot.send_message(chat_id=update.effective_chat.id,
+                                       text="\help - список доступных Вам команд.")
+    else:
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Это личный бот.\nЕсли вы попали сюда случайно, то просто удалите этот чат.\nДля общения необходимо зарегистрироваться.")
 
 
 async def link(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -96,7 +100,7 @@ async def link(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def pass_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.id == master_user:
+    if update.effective_chat.id in master_user:
         data = get_unpassed()
         keyboard_big = []
         keyboard = []
@@ -173,7 +177,7 @@ async def button_5(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def passed_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if sql.is_user_here(update.effective_chat.id):
+    if update.effective_chat.id in master_user:
         temp_storage_id = context.user_data.get("storage_id")
         op = context.user_data.get("Op")
         if op == 'Order': count = int(update.effective_message.text)
@@ -205,13 +209,13 @@ async def passed_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def drop_table(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if sql.is_user_here(update.effective_chat.id):
+    if update.effective_chat.id in master_user:
         sql.drop_tables()
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Таблица уничтожена.")
 
 
 async def get_all_storage(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if sql.is_user_here(update.effective_chat.id):
+    if update.effective_chat.id in master_user:
         table = "Наименование - количество\n"
         data = storage.get_all_storage()
         row_template = Template("$id)$Nom - $count")
@@ -222,20 +226,20 @@ async def get_all_storage(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def drop_storage(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if sql.is_user_here(update.effective_chat.id):
+    if update.effective_chat.id in master_user:
         storage.drop_table()
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Таблица товаров очищена.")
 
 
 async def add_storage(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if sql.is_user_here(update.effective_chat.id):
+    if update.effective_chat.id in master_user:
         temp_data = {"Op": 'Add'}
         context.user_data.update(temp_data)
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Введите наименование в формате - Наименование (Объем)")
 
 
 async def select_storage(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if sql.is_user_here(update.effective_chat.id):
+    if update.effective_chat.id in master_user:
         data = storage.get_all_storage()
         keyboard_big = []
         keyboard = []
@@ -251,7 +255,7 @@ async def select_storage(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def delete_storage(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if sql.is_user_here(update.effective_chat.id):
+    if update.effective_chat.id in master_user:
         data = storage.get_all_storage()
         keyboard_big = []
         keyboard = []
@@ -267,7 +271,7 @@ async def delete_storage(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def drop_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if sql.is_user_here(update.effective_chat.id):
+    if update.effective_chat.id in master_user:
         oders.drop_table()
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Таблица заказов удалена.")
 
@@ -296,13 +300,13 @@ async def end_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def get_all_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if sql.is_user_here(update.effective_chat.id):
+    if update.effective_chat.id in master_user:
         data = oders.get_orders()
         await context.bot.send_message(chat_id=update.effective_chat.id, text=data)
 
 
 async def get_unshiped(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if sql.is_user_here(update.effective_chat.id):
+    if update.effective_chat.id in master_user:
         data = oders.get_orders(shipped=False)
         #Пользователь - Номенклатура - Количество
         full_text = ""
@@ -316,7 +320,7 @@ async def get_unshiped(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def get_unpaid(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if sql.is_user_here(update.effective_chat.id):
+    if update.effective_chat.id in master_user:
         data = oders.get_orders(paid=False)
         full_text = ""
         for _, user_id, storage_id, count, _, _, _ in data:
@@ -329,7 +333,7 @@ async def get_unpaid(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def set_shiped(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if sql.is_user_here(update.effective_chat.id):
+    if update.effective_chat.id in master_user:
         data = oders.get_orders(shipped=True)
         orders = {}
         for _, user_id, storage_id, count, _, _, _ in data:
@@ -353,7 +357,7 @@ async def set_shiped(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def set_paid(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if sql.is_user_here(update.effective_chat.id):
+    if update.effective_chat.id in master_user:
         data = oders.get_orders(shipped=True, paid=False)
         orders = {}
         for _, user_id, storage_id, count, _, _, _ in data:
@@ -418,4 +422,4 @@ if __name__ == '__main__':
     application.add_handler(CallbackQueryHandler(button_1, pattern="Storage \d+"))
     application.add_handler(CallbackQueryHandler(button))
 
-    application.run_polling(stop_signals=signal.SIGTERM)
+    application.run_polling()
