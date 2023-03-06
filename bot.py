@@ -172,21 +172,31 @@ async def button_4(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def button_5(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        query = update.callback_query
-        user_id = query.data
-        temp_user_id = int(user_id.replace("Paid ", ""))
-        oders.set_paid(temp_user_id)
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="Заказ помечен оплаченым.")
+    query = update.callback_query
+    user_id = query.data
+    temp_user_id = int(user_id.replace("Paid ", ""))
+    oders.set_paid(temp_user_id)
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Заказ помечен оплаченым.")
 
+
+async def button_6(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user_id = query.data
+    temp_storage_index = int(user_id.replace("ChangeOrder ", ""))
+    temp_data = {"Op": 'ChangeOrder', "storage_index": temp_storage_index}
+    context.user_data.update(temp_data)
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Введите новое количество:")
 
 async def passed_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id in master_user:
         temp_storage_id = context.user_data.get("storage_id")
         op = context.user_data.get("Op")
+        temp_storage_index = context.user_data.get("storage_index")
         if op == 'Order': count = int(update.effective_message.text)
         if op == 'Storage': count = int(update.effective_message.text)
         if op == 'Add': nom = update.effective_message.text
         if op == 'Tel': tel = update.effective_message.text
+        if op == 'Storage': count = int(update.effective_message.text)
         if temp_storage_id is not None and op == 'Storage':
             if temp_storage_id > 0 and (type(count) == int or type(count) == float):
                 context.user_data.pop("storage_id")
@@ -207,6 +217,11 @@ async def passed_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if op == 'Tel':
             context.user_data.pop("Op")
             oders.set_tel_in_order(update.effective_chat.id, tel)
+        if count != 0 and op == 'ChangeOrder':
+            context.user_data.pop("Op")
+            context.user_data.pop("storage_index")
+            storage_id, different = oders.set_new_count(temp_storage_index, update.effective_chat.id, count)
+            storage.add_storage(storage_id, count)
     else:
         await context.bot.send_message(chat_id=update.effective_chat.id, text='Для общения стоит зарегистрироваться.')
 
@@ -315,6 +330,24 @@ async def my_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_message(chat_id=update.effective_chat.id, text=full_text)
         else:
             await context.bot.send_message(chat_id=update.effective_chat.id, text="Нет заказанных товаров.")
+
+
+async def change_count(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if sql.is_user_here(update.effective_chat.id):
+        data = oders.get_orders(user_id=update.effective_chat.id, shipped=False, paid=False)
+        keyboard_big = []
+        keyboard = []
+        index = 1
+        for _, user_id, storage_id, count, _, _, _ in data:
+            text_template = Template("$index)$nom - $count\n")
+            text = text_template.substitute(index=index, nom=storage.get_storage_name(storage_id).lstrip(), count=count)
+            but = InlineKeyboardButton(text, callback_data="ChangeOrder " + str(index))
+            keyboard.append(but)
+            index+=1
+        if keyboard.__len__() > 0:
+            keyboard_big.append(keyboard)
+            reply_markup = InlineKeyboardMarkup(keyboard_big)
+            await update.message.reply_text("Список товара:", reply_markup=reply_markup)
 
 
 async def get_all_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -433,7 +466,9 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler("set_shiped", set_shiped))
     application.add_handler(CommandHandler("set_paid", set_paid))
     application.add_handler(CommandHandler("my_orders", my_orders))
+    application.add_handler(CommandHandler("change_count", change_count))
     add_text_handler()
+    application.add_handler(CallbackQueryHandler(button_6, pattern="ChangeOrder \d+"))
     application.add_handler(CallbackQueryHandler(button_5, pattern="Paid \d+"))
     application.add_handler(CallbackQueryHandler(button_4, pattern="Ship \d+"))
     application.add_handler(CallbackQueryHandler(button_3, pattern="Order \d+"))

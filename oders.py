@@ -6,11 +6,11 @@ import sqlite3
 def get_con():
     con = sqlite3.connect("reg.db")
     cur = con.cursor()
-    create_storage_table(con, cur)
+    create_reg_table(con, cur)
     return con, cur
 
 
-def create_storage_table(con, cur):
+def create_reg_table(con, cur):
     cur.execute("CREATE TABLE if not exists orders(order_id INTEGER PRIMARY KEY NOT NULL, user_id, storage_id, count, shipped, paid, tel)")
     con.commit()
 
@@ -96,3 +96,17 @@ def set_tel_in_order(user_id, tel):
         con, cur = get_con()
         cur.execute(sql_query, data)
         con.commit()
+
+def set_new_count(temp_storage_index, user_id, count):
+    if temp_storage_index>0:
+        sql_query = "SELECT storage_id FROM orders WHERE user_id=? and shipped=FALSE and paid=FALSE"
+        data = (user_id,)
+        con, cur = get_con()
+        res = cur.execute(sql_query, data).fetchall()
+        if res is not None:
+            storage_id = res[0]
+            sql_query = "UPDATE orders SET count=? WHERE user_id=? and storage_id=? and shipped=False"
+            data = (count, user_id, storage_id)
+            cur.execute(sql_query, data)
+            con.commit()
+            return storage_id, count
