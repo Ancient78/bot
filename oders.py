@@ -140,3 +140,15 @@ def delete_row(user_id, temp_storage_index):
 def get_connection(user_id):
     _, cur = get_con()
     return cur.execute("SELECT tel FROM orders WHERE user_id="+str(user_id)).fetchall()
+
+
+def clear_shiped():
+    con, cur = get_con()
+    cur.execute("UPDATE orders SET shipped=False")
+    con.commit()
+
+
+def clear_paid():
+    con, cur = get_con()
+    cur.execute("UPDATE orders SET paid=False")
+    con.commit()
