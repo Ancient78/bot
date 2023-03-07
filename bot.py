@@ -1,5 +1,4 @@
 import logging
-import signal
 import urllib.parse
 from string import Template
 from typing import List
@@ -20,20 +19,20 @@ master_user = [1553590834, 449379851]
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id in master_user:
-        text = "Меню новичок:" \
+        text = "Меню новичок:\n" \
                "/help - Текущее руководство\n" \
                "/start - Начало работы с ботом\n" \
                "/reg - Регистрация для продолжения общения в этом чате\n" \
                "/link - Получить ссылку на этот бот\n" \
-               "Меню пользователя:\n" \
+               "\nМеню пользователя:\n" \
                "/help - Текущее руководство\n" \
                "/link - Получить ссылку на этот бот\n" \
                "/begin_orders - Начать сборку заказа\n" \
                "/end_orders - Закончить сборку заказа\n" \
-               "/my_orders - Просмотреть мой заказ" \
-               "/change_count - Изменить количество в заказе" \
-               "/del_row_from_order - Удалить строку заказа"\
-               "Мастер-меню:\n"\
+               "/my_orders - Просмотреть мой заказ\n" \
+               "/change_count - Изменить количество в заказе\n" \
+               "/del_row_from_order - Удалить строку заказа\n"\
+               "\nМастер-меню:\n"\
                "/start - Начало работы (ознакомительное)\n" \
                "/help - Текущее руководтсво\n" \
                "/reg - Регистрация\n" \
@@ -44,6 +43,7 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
                "/get_all_storage - Получить все товары с остатками\n" \
                "/drop_storage - Удалить таблицу с товарами\n" \
                "/select_storage - Добавить количество к товару\n" \
+               "/add_price - Добавить цену к товару\n" \
                "/add_storage - Добавить товар (только наименование)\n" \
                "/delete_storage - Удалить конкретный товар (Нумерация слетает))\n" \
                "/begin_orders - Начать сборку заказа\n" \
@@ -53,7 +53,9 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
                "/get_unshiped - Получить все неотгруженные\n" \
                "/set_shiped - Установить заказ отгруженным\n" \
                "/get_unpaid - Получить все неоплаченные\n" \
-               "/set_paid - Установить заказ оплаченным\n"
+               "/set_paid - Установить заказ оплаченным\n" \
+               "/get_connection - Получить данные для связи\n" \
+               "/send_message - Отправить сообщение пользователю через бот\n"
     elif sql.is_user_here(update.effective_chat.id):
         text = "Данный бот создан для возможности заказа\n" \
                "/help - Текущее руководство\n" \
@@ -85,8 +87,8 @@ async def get_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if last_name is not None:
                 last_name = urllib.parse.unquote(last_name)
                 name += last_name
-            row_template = Template('$index) $id - $name\n')
-            row = row_template.substitute(id=id, name=name, index=index)
+            row_template = Template('$index) $id - $name passed=$passed\n')
+            row = row_template.substitute(id=id, name=name, index=index, passed=passed)
             table += row
             index+=1
         await context.bot.send_message(chat_id=update.effective_chat.id, text=table)
@@ -100,7 +102,8 @@ async def reg(update: Update, context: ContextTypes.DEFAULT_TYPE):
         add_user(user_id=update.effective_chat.id, first_name=update.effective_chat.first_name,
              last_name=update.effective_chat.last_name)
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Регистрационные данные добавлены. Ждите одобрения")
-        await context.bot.send_message(chat_id=master_user, text="Зарегистрирован новый пользователь.")
+        for user in master_user:
+            await context.bot.send_message(chat_id=user, text="Зарегистрирован новый пользователь.")
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -212,17 +215,49 @@ async def button_7(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Строка заказа удалена.")
 
 
+async def button_8(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user_id = query.data
+    temp_storage_index = int(user_id.replace("AddPrice ", ""))
+    temp_data = {"Op": 'AddPrice', "storage_index": temp_storage_index}
+    context.user_data.update(temp_data)
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Введите новую цену:")
+
+
+async def button_9(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.callback_query.data
+    temp_user_id = int(user_id.replace("Connection ", ""))
+    data = oders.get_connection(temp_user_id)
+    full_text = sql.get_user_name(temp_user_id)+"\n"
+    for row in data:
+        for tel in row:
+            full_text += str(tel) + "\n"
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=full_text)
+
+
+async def button_10(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.callback_query.data
+    temp_user_id = int(user_id.replace("SendMessage ", ""))
+    temp_data = {"Op": 'SendMessage', "user_id": temp_user_id}
+    context.user_data.update(temp_data)
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Введите сообщение:")
+
+
 async def passed_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.id in master_user:
+    if sql.is_user_here(update.effective_chat.id):
         temp_storage_id = context.user_data.get("storage_id")
         op = context.user_data.get("Op")
         temp_storage_index = context.user_data.get("storage_index")
+        temp_user_id = context.user_data.get("user_id")
         count = 0
+        message = ""
+        if op == 'SendMessage': message = update.effective_message.text
         if op == 'Order': count = int(update.effective_message.text)
         if op == 'Storage': count = int(update.effective_message.text)
         if op == 'Add': nom = update.effective_message.text
         if op == 'Tel': tel = update.effective_message.text
         if op == 'ChangeOrder': count = int(update.effective_message.text)
+        if op == 'AddPrice': price = float(update.effective_message.text)
         if temp_storage_id is not None and op == 'Storage':
             if temp_storage_id > 0 and (type(count) == int or type(count) == float):
                 context.user_data.pop("storage_id")
@@ -249,6 +284,15 @@ async def passed_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
             storage_index = int(temp_storage_index) - 1
             storage_id, different = oders.set_new_count(storage_index, update.effective_chat.id, count)
             storage.add_storage(storage_id, count)
+        if op == 'AddPrice' and price != 0:
+            context.user_data.pop("Op")
+            context.user_data.pop("storage_index")
+            storage.add_price(temp_storage_index, price)
+            await context.bot.send_message(chat_id=update.effective_chat.id, text='Цена обновлена.')
+        if op == 'SendMessage':
+            context.user_data.pop("Op")
+            context.user_data.pop("user_id")
+            await context.bot.send_message(chat_id=temp_user_id, text=message)
     else:
         await context.bot.send_message(chat_id=update.effective_chat.id, text='Для общения стоит зарегистрироваться.')
 
@@ -256,16 +300,18 @@ async def passed_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def drop_table(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id in master_user:
         sql.drop_tables()
+        set_master()
+        update_filter()
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Таблица уничтожена.")
 
 
 async def get_all_storage(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id in master_user:
-        table = "Наименование - количество\n"
+        table = "Наименование - количество - Цена(руб.)\n"
         data = storage.get_all_storage()
-        row_template = Template("$id)$Nom - $count")
-        for id, nom, count in data:
-            row = row_template.substitute(id=id, Nom=nom, count=count)
+        row_template = Template("$id)$Nom - $count - $price")
+        for id, nom, count, price in data:
+            row = row_template.substitute(id=id, Nom=nom, count=count, price=price)
             table = table + row + "\n"
         await context.bot.send_message(chat_id=update.effective_chat.id, text=table)
 
@@ -287,14 +333,30 @@ async def select_storage(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id in master_user:
         data = storage.get_all_storage()
         keyboard_big = []
-        keyboard = []
-        for storage_id, nom, count in data:
-            text_template = Template("$id)$Nom - $count")
-            text = text_template.substitute(id=storage_id, Nom=nom, count=count)
+        for storage_id, nom, count, price in data:
+            keyboard = []
+            text_template = Template("$id)$Nom - $count - $price")
+            text = text_template.substitute(id=storage_id, Nom=nom, count=count, price=price)
             but = InlineKeyboardButton(text, callback_data="Storage " + str(storage_id))
             keyboard.append(but)
-        if keyboard.__len__() > 0:
             keyboard_big.append(keyboard)
+        if keyboard_big.__len__() > 0:
+            reply_markup = InlineKeyboardMarkup(keyboard_big)
+            await update.message.reply_text("Список товара:", reply_markup=reply_markup)
+
+
+async def add_price(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_chat.id in master_user:
+        data = storage.get_all_storage()
+        keyboard_big = []
+        for storage_id, nom, count, price in data:
+            keyboard = []
+            text_template = Template("$id)$Nom - $count - $price")
+            text = text_template.substitute(id=storage_id, Nom=nom, count=count, price=price)
+            but = InlineKeyboardButton(text, callback_data="AddPrice " + str(storage_id))
+            keyboard.append(but)
+            keyboard_big.append(keyboard)
+        if keyboard_big.__len__() > 0:
             reply_markup = InlineKeyboardMarkup(keyboard_big)
             await update.message.reply_text("Список товара:", reply_markup=reply_markup)
 
@@ -304,9 +366,9 @@ async def delete_storage(update: Update, context: ContextTypes.DEFAULT_TYPE):
         data = storage.get_all_storage()
         keyboard_big = []
         keyboard = []
-        for storage_id, nom, count in data:
-            text_template = Template("$id)$Nom - $count")
-            text = text_template.substitute(id=storage_id, Nom=nom, count=count)
+        for storage_id, nom, count, price in data:
+            text_template = Template("$id)$Nom - $count - $price")
+            text = text_template.substitute(id=storage_id, Nom=nom, count=count, price=price)
             but = InlineKeyboardButton(text, callback_data="Delete " + str(storage_id))
             keyboard.append(but)
         if keyboard.__len__() > 0:
@@ -325,14 +387,14 @@ async def begin_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if sql.is_user_here(update.effective_chat.id):
         data = storage.get_all_storage()
         keyboard_big = []
-        keyboard = []
-        for storage_id, nom, count in data:
-            text_template = Template("$id)$Nom - $count")
-            text = text_template.substitute(id=storage_id, Nom=nom, count=count)
+        for storage_id, nom, count, price in data:
+            keyboard = []
+            text_template = Template("$id)$Nom - $count - $price")
+            text = text_template.substitute(id=storage_id, Nom=nom, count=count, price=price)
             but = InlineKeyboardButton(text, callback_data="Order " + str(storage_id))
             keyboard.append(but)
-        if keyboard.__len__() > 0:
             keyboard_big.append(keyboard)
+        if keyboard_big.__len__() > 0:
             reply_markup = InlineKeyboardMarkup(keyboard_big)
             await update.message.reply_text("Список товара:", reply_markup=reply_markup)
 
@@ -342,6 +404,8 @@ async def end_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
         temp_data = {"Op": 'Tel'}
         context.user_data.update(temp_data)
         await context.bot.send_message(update.effective_chat.id, text="Введите телефон для связи, если хотите, чтобы Вам перезвонили. В ином случае с Вами свяжутся через Телеграмм.")
+        for user in master_user:
+            await context.bot.send_message(chat_id=user, text="Зафиксирован новый заказ.")
 
 
 async def my_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -349,11 +413,15 @@ async def my_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
         data = oders.get_orders(user_id=update.effective_chat.id, shipped=False, paid=False)
         full_text = ""
         index = 1
-        for _, user_id, storage_id, count, _, _, _ in data:
-            temp_text = Template("$index)$nom - $count\n")
-            full_text += temp_text.substitute(index=index, nom=storage.get_storage_name(storage_id).lstrip(), count=count)
+        full_cost = 0
+        for _, user_id, storage_id, count, cost, _, _, _ in data:
+            temp_text = Template("$index)$nom - $count - $cost\n")
+            full_text += temp_text.substitute(index=index, nom=storage.get_storage_name(storage_id).lstrip(), count=count, cost=cost)
             index+=1
+            full_cost +=cost
         if full_text != "":
+            full_text += "Общая стоимость: "
+            full_text += str(full_cost)
             await context.bot.send_message(chat_id=update.effective_chat.id, text=full_text)
         else:
             await context.bot.send_message(chat_id=update.effective_chat.id, text="Нет заказанных товаров.")
@@ -398,18 +466,30 @@ async def del_row_from_order(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def get_all_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id in master_user:
         data = oders.get_orders()
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=data)
+        full_text = ""
+        full_cost = 0
+        for order_id, user_id, storage_id, count, cost, shipped, paid, tel in data:
+            temp_text = Template("$user_name - $storage_name - $count - $cost - Отгружено: $shipped, Оплачено: $paid\n")
+            text = temp_text.substitute(user_name=sql.get_user_name(user_id), storage_name=storage.get_storage_name(storage_id), count=count, shipped=bool(shipped), paid=bool(paid), cost=cost)
+            full_text += text
+            full_cost += cost
+        full_text += "Общая стоимость: "
+        full_text += str(full_cost)
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=full_text)
 
 
 async def get_unshiped(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id in master_user:
         data = oders.get_orders(shipped=False)
-        #Пользователь - Номенклатура - Количество
+        full_cost = 0
         full_text = ""
-        for _, user_id, storage_id, count, _, _, _ in data:
-            temp_text = Template("$user - $nom - $count\n")
-            full_text += temp_text.substitute(user=sql.get_user_name(user_id), nom=storage.get_storage_name(storage_id), count=count)
+        for _, user_id, storage_id, count, cost, _, _, _ in data:
+            temp_text = Template("$user - $nom - $count - $cost\n")
+            full_text += temp_text.substitute(user=sql.get_user_name(user_id), nom=storage.get_storage_name(storage_id), count=count, cost=cost)
+            full_cost += cost
         if full_text!="":
+            full_text += "Общая стоимость: "
+            full_text += str(full_cost)
             await context.bot.send_message(chat_id=update.effective_chat.id, text=full_text)
         else:
             await context.bot.send_message(chat_id=update.effective_chat.id, text="Нет неотгруженных товаров.")
@@ -419,10 +499,14 @@ async def get_unpaid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id in master_user:
         data = oders.get_orders(paid=False)
         full_text = ""
-        for _, user_id, storage_id, count, _, _, _ in data:
+        full_cost = 0
+        for _, user_id, storage_id, count, cost, _, _, _ in data:
             temp_text = Template("$user - $nom - $count\n")
             full_text += temp_text.substitute(user=sql.get_user_name(user_id), nom=storage.get_storage_name(storage_id), count=count)
+            full_cost += cost
         if full_text!="":
+            full_text += "Общая стоимость: "
+            full_text += str(full_cost)
             await context.bot.send_message(chat_id=update.effective_chat.id, text=full_text)
         else:
             await context.bot.send_message(chat_id=update.effective_chat.id, text="Нет неоплаченных товаров.")
@@ -430,9 +514,9 @@ async def get_unpaid(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def set_shiped(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id in master_user:
-        data = oders.get_orders(shipped=True)
+        data = oders.get_orders(shipped=False)
         orders = {}
-        for _, user_id, storage_id, count, _, _, _ in data:
+        for _, user_id, storage_id, count, cost, _, _, _ in data:
             new_order = storage.get_storage_name(storage_id) + " - " + str(count)
             if orders.get(user_id) is None:
                 orders[user_id] = (sql.get_user_name(user_id), new_order)
@@ -456,7 +540,7 @@ async def set_paid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id in master_user:
         data = oders.get_orders(shipped=True, paid=False)
         orders = {}
-        for _, user_id, storage_id, count, _, _, _ in data:
+        for _, user_id, storage_id, count, cost, _, _, _ in data:
             new_order = storage.get_storage_name(storage_id) + " - " + str(count)
             if orders.get(user_id) is None:
                 orders[user_id] = (sql.get_user_name(user_id), new_order)
@@ -476,6 +560,44 @@ async def set_paid(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("Список отгруженных заказов:", reply_markup=reply_markup)
 
 
+async def get_connection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_chat.id in master_user:
+        data = oders.get_orders(paid=True)
+        users = set()
+        for _, user_id, storage_id, count, cost, _, _, _ in data:
+            users.add(user_id)
+
+        keyboard_big = []
+        keyboard = []
+        for user_id in users:
+            text_button = sql.get_user_name(user_id)
+            but = InlineKeyboardButton(text_button, callback_data="Connection " + str(user_id))
+            keyboard.append(but)
+        if keyboard.__len__() > 0:
+            keyboard_big.append(keyboard)
+            reply_markup = InlineKeyboardMarkup(keyboard_big)
+            await update.message.reply_text("Список пользователей, оплативших заказ:", reply_markup=reply_markup)
+
+
+async def send_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_chat.id in master_user:
+        data = oders.get_orders()
+        users = set()
+        for _, user_id, storage_id, count, cost, _, _, _ in data:
+            users.add(user_id)
+
+        keyboard_big = []
+        keyboard = []
+        for user_id in users:
+            text_button = sql.get_user_name(user_id)
+            but = InlineKeyboardButton(text_button, callback_data="SendMessage " + str(user_id))
+            keyboard.append(but)
+        if keyboard.__len__() > 0:
+            keyboard_big.append(keyboard)
+            reply_markup = InlineKeyboardMarkup(keyboard_big)
+            await update.message.reply_text("Список пользователей:", reply_markup=reply_markup)
+
+
 def add_text_handler():
     update_filter()
     passed_user_handler = MessageHandler(my_filters, passed_user)
@@ -486,6 +608,26 @@ def update_filter():
     dlist: List = get_id_list()
     for dl in dlist:
         my_filters.add_user_ids(dl)
+
+
+def set_master():
+    res = sql.get_master()
+    len_res = res.__len__()
+    if len_res == 0:
+        # 1553590834, 449379851
+        sql.add_user(1553590834, "Мастер 2", None)
+        sql.add_user(449379851, "Мастер 1", None)
+        sql.pass_user('1553590834')
+        sql.pass_user('449379851')
+    elif len_res == 1:
+        name = sql.get_user_name(449379851)
+        if name == "":
+            sql.add_user(449379851, "Мастер 1", None)
+            sql.pass_user('449379851')
+        name = sql.get_user_name(1553590834)
+        if name == "":
+            sql.add_user(1553590834, "Мастер 2", None)
+            sql.pass_user('1553590834')
 
 
 if __name__ == '__main__':
@@ -513,7 +655,14 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler("my_orders", my_orders))
     application.add_handler(CommandHandler("change_count", change_count))
     application.add_handler(CommandHandler("del_row_from_order", del_row_from_order))
+    application.add_handler(CommandHandler("add_price", add_price))
+    application.add_handler(CommandHandler("get_connection", get_connection))
+    application.add_handler(CommandHandler("send_message", send_message))
+    set_master()
     add_text_handler()
+    application.add_handler(CallbackQueryHandler(button_10, pattern="SendMessage \d+"))
+    application.add_handler(CallbackQueryHandler(button_9, pattern="Connection \d+"))
+    application.add_handler(CallbackQueryHandler(button_8, pattern="AddPrice \d+"))
     application.add_handler(CallbackQueryHandler(button_7, pattern="DeleteRow \d+"))
     application.add_handler(CallbackQueryHandler(button_6, pattern="ChangeOrder \d+"))
     application.add_handler(CallbackQueryHandler(button_5, pattern="Paid \d+"))
@@ -522,5 +671,4 @@ if __name__ == '__main__':
     application.add_handler(CallbackQueryHandler(button_2, pattern="Delete \d+"))
     application.add_handler(CallbackQueryHandler(button_1, pattern="Storage \d+"))
     application.add_handler(CallbackQueryHandler(button))
-
     application.run_polling()

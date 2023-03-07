@@ -1,5 +1,8 @@
 import sqlite3
 
+import storage
+
+
 # table storage
 
 
@@ -11,7 +14,7 @@ def get_con():
 
 
 def create_reg_table(con, cur):
-    cur.execute("CREATE TABLE if not exists orders(order_id INTEGER PRIMARY KEY NOT NULL, user_id, storage_id, count, shipped, paid, tel)")
+    cur.execute("CREATE TABLE if not exists orders(order_id INTEGER PRIMARY KEY NOT NULL, user_id, storage_id, count, cost, shipped, paid, tel)")
     con.commit()
 
 
@@ -24,13 +27,20 @@ def drop_table():
 def add_order(user_id, storage_id, count):
     con, cur = get_con()
     now_count = get_orders_by_storage(user_id, storage_id)
-    if now_count>0:
-        sql_query = "UPDATE orders SET count=? WHERE user_id=? and storage_id=? and shipped=False and paid=False"
-        data = (count+now_count, user_id, storage_id)
+    temp_price = storage.get_price(storage_id)
+    if temp_price is not None:
+        price = temp_price[0]
+    else:
+        price = 0
+    if now_count > 0:
+        sql_query = "UPDATE orders SET count=?, cost=? WHERE user_id=? and storage_id=? and shipped=False and paid=False"
+        cost = round(price*(count+now_count), 2)
+        data = (count+now_count, cost, user_id, storage_id)
         cur.execute(sql_query, data)
     else:
-        sql_query = """INSERT INTO orders(user_id, storage_id, count, shipped, paid) VALUES (?,?,?,0,0)"""
-        data = (user_id, storage_id, count)
+        sql_query = """INSERT INTO orders(user_id, storage_id, count, cost, shipped, paid) VALUES (?,?,?,?,0,0)"""
+        cost = round(price * count, 2)
+        data = (user_id, storage_id, count, cost)
     cur.execute(sql_query, data)
     con.commit()
 
@@ -98,7 +108,7 @@ def set_tel_in_order(user_id, tel):
         con.commit()
 
 def set_new_count(temp_storage_index, user_id, count):
-    if temp_storage_index>0:
+    if temp_storage_index > 0:
         sql_query = "SELECT storage_id, count FROM orders WHERE user_id=? and shipped=FALSE and paid=FALSE"
         data = (user_id,)
         con, cur = get_con()
@@ -125,3 +135,8 @@ def delete_row(user_id, temp_storage_index):
             cur.execute(sql_query, data)
             con.commit()
             return storage_id, now_count
+
+
+def get_connection(user_id):
+    _, cur = get_con()
+    return cur.execute("SELECT tel FROM orders WHERE user_id="+str(user_id)).fetchall()

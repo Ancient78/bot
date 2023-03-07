@@ -11,7 +11,7 @@ def get_con():
 
 
 def create_storage_table(con, cur):
-    cur.execute("CREATE TABLE if not exists storage(storage_id INTEGER PRIMARY KEY NOT NULL, nom, count)")
+    cur.execute("CREATE TABLE if not exists storage(storage_id INTEGER PRIMARY KEY NOT NULL, nom, count, price)")
     con.commit()
 
 
@@ -55,7 +55,7 @@ def delete_row(storage_id):
 
 def get_all_storage():
     con, cur = get_con()
-    return cur.execute("SELECT storage_id, nom, count FROM storage").fetchall()
+    return cur.execute("SELECT storage_id, nom, count, price FROM storage").fetchall()
 
 
 def make_reserve(storage_id, count) -> bool:
@@ -72,3 +72,16 @@ def get_storage_name(storage_id)->str:
     res = cur.execute("SELECT nom FROM storage WHERE storage_id=?", (storage_id,)).fetchone()
     if res is not None:
         return res[0]
+
+
+def add_price(storage_index, price):
+    con, cur = get_con()
+    sql_query = "UPDATE storage SET price=? WHERE storage_id=?"
+    data = (price, storage_index)
+    cur.execute(sql_query, data)
+    con.commit()
+
+
+def get_price(storage_id):
+    _, cur = get_con()
+    return cur.execute("SELECT price FROM storage WHERE storage_id="+str(storage_id)).fetchone()

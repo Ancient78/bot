@@ -13,7 +13,6 @@ def create_id_table(con, cur):
     cur.execute("CREATE TABLE if not exists id(user_id, first_name, last_name, passed)")
     con.commit()
 
-
 def drop_tables():
     con, cur = get_con()
     cur.execute("DROP TABLE IF EXISTS id")
@@ -24,6 +23,13 @@ def get_id_list():
     con, cur = get_con()
     res = cur.execute("SELECT user_id FROM id WHERE passed=True")
     return res.fetchall()
+
+
+def get_master():
+    _, cur = get_con()
+    sql_query = "SELECT * FROM id WHERE user_id = ? or user_id = ?"
+    data = (1553590834, 449379851)
+    return cur.execute(sql_query, data).fetchall()
 
 
 def get_unpassed():
@@ -65,4 +71,17 @@ def get_user_name(user_id):
     res = cur.execute("SELECT last_name, first_name FROM id WHERE user_id="+str(user_id)).fetchone()
     if res is not None:
         last_name, first_name = res
-        return urllib.parse.unquote(last_name) + " " + urllib.parse.unquote(first_name)
+        return get_full_name(last_name, first_name)
+    else:
+        return ""
+
+def get_full_name(last_name, first_name):
+    if last_name is not None:
+        last_name = urllib.parse.unquote(last_name)
+    else:
+        last_name = ""
+    if first_name is not None:
+        first_name =  urllib.parse.unquote(first_name)
+    else:
+        first_name = ""
+    return last_name + " " + first_name
