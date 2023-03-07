@@ -1,5 +1,6 @@
 import sqlite3
 import urllib
+from urllib import parse
 
 
 def get_con():
@@ -12,6 +13,7 @@ def get_con():
 def create_id_table(con, cur):
     cur.execute("CREATE TABLE if not exists id(user_id, first_name, last_name, passed)")
     con.commit()
+
 
 def drop_tables():
     con, cur = get_con()
@@ -66,6 +68,7 @@ def get_full_data(user_id):
     con, cur = get_con()
     return cur.execute("SELECT last_name, first_name FROM id WHERE user_id="+str(user_id)).fetchone()
 
+
 def get_user_name(user_id):
     _, cur = get_con()
     res = cur.execute("SELECT last_name, first_name FROM id WHERE user_id="+str(user_id)).fetchone()
@@ -75,13 +78,14 @@ def get_user_name(user_id):
     else:
         return ""
 
+
 def get_full_name(last_name, first_name):
     if last_name is not None:
         last_name = urllib.parse.unquote(last_name)
     else:
         last_name = ""
     if first_name is not None:
-        first_name =  urllib.parse.unquote(first_name)
+        first_name = urllib.parse.unquote(first_name)
     else:
         first_name = ""
     return last_name + " " + first_name

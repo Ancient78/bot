@@ -25,7 +25,6 @@ def drop_table():
 
 def add_ship(storage_id_list):
     con, cur = get_con()
-    sql_query = ""
     for row in storage_id_list:
         sql_query_temp = Template("SELECT * FROM date WHERE storage_id=$storage_id and order_id=$order_id")
         sql_query = sql_query_temp.substitute(storage_id=row[0], order_id=row[1])
@@ -45,7 +44,7 @@ def add_pay(storage_id_list):
         sql_query_temp = Template("SELECT * FROM date WHERE storage_id=$storage_id and order_id=$order_id")
         sql_query = sql_query_temp.substitute(storage_id=row[0], order_id=row[1])
         if cur.execute(sql_query).fetchone() is not None:
-            sql_query="UPDATE date SET pay_date=? WHERE storage_id=? and order_id=?"
+            sql_query = "UPDATE date SET pay_date=? WHERE storage_id=? and order_id=?"
             data = (datetime.datetime.now(), row[0], row[1])
         else:
             sql_query = "INSERT INTO date(storage_id, pay_date, order_id) VALUES (?, ?, ?)"

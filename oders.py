@@ -14,7 +14,8 @@ def get_con():
 
 
 def create_reg_table(con, cur):
-    cur.execute("CREATE TABLE if not exists orders(order_id INTEGER PRIMARY KEY NOT NULL, user_id, storage_id, count, cost, shipped, paid, tel)")
+    cur.execute("CREATE TABLE if not exists orders(order_id INTEGER PRIMARY KEY NOT NULL, user_id, storage_id, count, "
+                "cost, shipped, paid, tel)")
     con.commit()
 
 
@@ -33,7 +34,8 @@ def add_order(user_id, storage_id, count):
     else:
         price = 0
     if now_count > 0:
-        sql_query = "UPDATE orders SET count=?, cost=? WHERE user_id=? and storage_id=? and shipped=False and paid=False"
+        sql_query = "UPDATE orders SET count=?, cost=? WHERE user_id=? and storage_id=? and shipped=False and " \
+                    "paid=False"
         cost = round(price*(count+now_count), 2)
         data = (count+now_count, cost, user_id, storage_id)
         cur.execute(sql_query, data)
@@ -107,6 +109,7 @@ def set_tel_in_order(user_id, tel):
         cur.execute(sql_query, data)
         con.commit()
 
+
 def set_new_count(temp_storage_index, user_id, count):
     if temp_storage_index > 0:
         sql_query = "SELECT storage_id, count FROM orders WHERE user_id=? and shipped=FALSE and paid=FALSE"
@@ -123,7 +126,7 @@ def set_new_count(temp_storage_index, user_id, count):
 
 
 def delete_row(user_id, temp_storage_index):
-    if temp_storage_index>0:
+    if temp_storage_index > 0:
         sql_query = "SELECT storage_id, count FROM orders WHERE user_id=? and shipped=FALSE and paid=FALSE"
         data = (user_id,)
         con, cur = get_con()

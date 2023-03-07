@@ -60,14 +60,14 @@ def get_all_storage():
 
 def make_reserve(storage_id, count) -> bool:
     now_count = get_count(storage_id)
-    if count>now_count:
+    if count > now_count:
         return False
     else:
         add_storage(storage_id, -count)
         return True
 
 
-def get_storage_name(storage_id)->str:
+def get_storage_name(storage_id) -> str:
     _, cur = get_con()
     res = cur.execute("SELECT nom FROM storage WHERE storage_id=?", (storage_id,)).fetchone()
     if res is not None:
