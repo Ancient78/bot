@@ -53,9 +53,12 @@ def delete_row(storage_id):
     con.commit()
 
 
-def get_all_storage():
+def get_all_storage(orders = False):
     con, cur = get_con()
-    return cur.execute("SELECT storage_id, nom, count, price FROM storage").fetchall()
+    if orders:
+        return cur.execute("SELECT storage_id, nom, count, price FROM storage WHERE count > 0").fetchall()
+    else:
+        return cur.execute("SELECT storage_id, nom, count, price FROM storage").fetchall()
 
 
 def make_reserve(storage_id, count) -> bool:

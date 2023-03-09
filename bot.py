@@ -409,7 +409,7 @@ async def drop_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def begin_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if sql.is_user_here(update.effective_chat.id):
-        data_row = storage.get_all_storage()
+        data_row = storage.get_all_storage(orders=True)
         keyboard_big = []
         for storage_id, nom, count, price in data_row:
             keyboard = []
