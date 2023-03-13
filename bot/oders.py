@@ -7,7 +7,7 @@ import storage
 
 
 def get_con():
-    con = sqlite3.connect("reg.db")
+    con = sqlite3.connect("../reg.db")
     cur = con.cursor()
     create_reg_table(con, cur)
     return con, cur

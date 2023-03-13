@@ -6,7 +6,7 @@ from string import Template
 
 
 def get_con():
-    con = sqlite3.connect("reg.db")
+    con = sqlite3.connect("../reg.db")
     cur = con.cursor()
     create_storage_table(con, cur)
     return con, cur
