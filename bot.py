@@ -7,8 +7,11 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, filters, MessageHandler, \
     CallbackQueryHandler
 
-from bot import data, oders, sql, storage
-from bot.sql import get_id_list, add_user, get_unpassed
+import data
+import oders
+import sql
+import storage
+from sql import get_id_list, add_user, get_unpassed
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 my_filters = filters.User()
